@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Campeonato FIFA 25</title>
+    <meta name="description" content="Inscrições e chaveamento eliminatório simples para campeonato de FIFA 25." />
+    <!-- TailwindCSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind Config – tema gamer neon
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        night: '#0b0f1a',
+                        ink: '#0f172a',
+                        neon: '#22d3ee',
+                        lime: '#a3e635',
+                        magenta: '#f472b6'
+                    },
+                    boxShadow: {
+                        neon: '0 0 0 2px rgba(34, 211, 238, 0.5), 0 10px 25px rgba(0,0,0,.35)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Linhas do bracket */
+        .connector {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .connector.h {
+            height: 2px;
+        }
+
+        .connector.v {
+            width: 2px;
+        }
+
+        /* Scroll suave */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Esconde setas numéricas nos inputs (mobile-friendly) */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body class="bg-ink min-h-screen text-white">
+    <!-- Header -->
+    <div id="infoBanner"
+        class="bg-yellow-400 text-black px-4 py-3 text-center font-semibold flex items-center justify-center relative">
+        <span class="mx-2">Não clique em “SORTEAR & GERAR CHAVE” ainda! Apenas inscreva-se. Quando todos estiverem
+            inscritos, clicaremos juntos para sortear!<p> Um grande abraço queridos e obrigado pela presença nesse dia
+                tão especial!</p></span>
+        <button id="closeBanner" class="ml-4 font-bold text-xl leading-none hover:text-gray-800"
+            aria-label="Fechar aviso">&times;</button>
+    </div>
+
+    <header class="relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-r from-teal-500/10 via-cyan-500/10 to-fuchsia-500/10 blur-3xl">
+        </div>
+        <div class="relative max-w-6xl mx-auto px-4 py-8 flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-black tracking-tight">Campeonato <span class="text-neon">FIFA
+                        25</span></h1>
+                <p class="text-white/70">Inscreva-se, e vamos comemorar com alegria mais um ciclo de vida!</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="toggleReadOnly"
+                    class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition shadow-neon">Modo
+                    leitura</button>
+                <a href="#bracket"
+                    class="px-3 py-2 rounded-xl bg-neon text-black font-semibold hover:brightness-110 transition shadow-neon">Ver
+                    Chaves</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main -->
+    <main class="max-w-6xl mx-auto px-4 pb-16">
+        <!-- Inscrições Card -->
+        <section class="mt-6">
+            <div class="bg-white/[0.04] border border-white/10 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <section class="mt-6">
+                        <div class="bg-white/[0.04] border border-white/10 rounded-2xl p-5 shadow-xl">
+                            <p class="mb-2 text-lg font-semibold text-lime"> Cadastre-se para participar do After dos
+                                31 anos do Will! 🎮🍷</p>
+                            <div class="flex gap-2">
+                                <button id="clearAll"
+                                    class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition">Limpar
+                                    tudo</button>
+                                <button id="exportBtn"
+                                    class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition">Exportar</button>
+                                <label
+                                    class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition cursor-pointer">
+                                    Importar <input id="importFile" type="file" accept="application/json"
+                                        class="hidden" />
+                                </label>
+                            </div>
+                        </div>
+                        <br>
+                        <h2 class="text-xl font-bold">Inscrições</h2>
+                        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <input id="playerName" type="text" placeholder="Nome do jogador"
+                                class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-neon" />
+                            <input id="playerContact" type="text" placeholder="Contato (opcional)"
+                                class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-neon" />
+                            <button id="addPlayer"
+                                class="w-full px-4 py-3 rounded-xl bg-lime text-black font-semibold hover:brightness-110 transition">+
+                                Adicionar</button>
+                        </div>
+
+                        <div class="mt-5">
+                            <ul id="playersList" class="grid md:grid-cols-2 gap-2"></ul>
+                        </div>
+
+                        <div class="mt-6 flex flex-wrap items-center gap-2">
+                            <button id="shuffleBtn"
+                                class="px-4 py-3 rounded-xl bg-neon text-black font-bold hover:brightness-110 transition">SORTEAR
+                                & GERAR CHAVE</button>
+                            <button id="resetBracket"
+                                class="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition">Resetar
+                                Chave</button>
+                            <span class="text-white/60 text-sm">Sugestão: 8, 16 ou 32 jogadores. Número ímpar gera BYE
+                                automático.</span>
+                        </div>
+                </div>
+        </section>
+
+        <!-- Bracket -->
+        <section id="bracket" class="mt-10">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-bold">Chaves</h2>
+                <div class="text-white/60 text-sm">Clique no Definir para marcar o vencedor do jogo.</div>
+            </div>
+
+            <div id="bracketContainer" class="relative mt-4 overflow-x-auto">
+                <div id="rounds" class="flex items-start gap-6 min-w-full pb-8"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="border-t border-white/10 py-6 text-center text-white/60 text-sm">
+        © 2025 Will – 31 anos. Todos os direitos reservados. </footer>
+
+    <script>
+        // ----------------------
+        // Estado & Persistência
+        // ----------------------
+        const state = {
+            players: [], // [{name, contact, id}]
+            bracket: null, // { rounds: [ [ {p1, p2, winner} ] , ... ] }
+            readOnly: false
+        };
+
+        const LS_KEY = 'fifa25_tournament_v1';
+
+        function uid() { return Math.random().toString(36).slice(2, 9) }
+
+        function save() {
+            localStorage.setItem(LS_KEY, JSON.stringify(state));
+        }
+
+        function load() {
+            const raw = localStorage.getItem(LS_KEY);
+            if (!raw) return;
+            try {
+                const data = JSON.parse(raw);
+                if (Array.isArray(data.players)) state.players = data.players;
+                if (data.bracket) state.bracket = data.bracket;
+                if (typeof data.readOnly === 'boolean') state.readOnly = data.readOnly;
+            } catch (e) { console.warn('Load failed', e) }
+        }
+
+        // ----------------------
+        // Helpers
+        // ----------------------
+        function shuffle(arr) {
+            const a = arr.slice();
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+
+        function byesHandledPlayers(players) {
+            const list = players.slice();
+            if (list.length % 2 === 1) list.push({ name: 'BYE', contact: '', id: 'bye' });
+            return list;
+        }
+
+        function chunk(arr, size) {
+            const out = [];
+            for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+            return out;
+        }
+
+        function el(tag, cls, text) {
+            const e = document.createElement(tag);
+            if (cls) e.className = cls;
+            if (text != null) e.textContent = text;
+            return e;
+        }
+
+        // ----------------------
+        // UI: Inscrições
+        // ----------------------
+        const playerName = document.getElementById('playerName');
+        const playerContact = document.getElementById('playerContact');
+        const addPlayerBtn = document.getElementById('addPlayer');
+        const playersList = document.getElementById('playersList');
+        const clearAllBtn = document.getElementById('clearAll');
+        const exportBtn = document.getElementById('exportBtn');
+        const importFile = document.getElementById('importFile');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const resetBracketBtn = document.getElementById('resetBracket');
+        const toggleReadOnlyBtn = document.getElementById('toggleReadOnly');
+
+        function renderPlayers() {
+            playersList.innerHTML = '';
+            if (state.players.length === 0) {
+                const li = el('li', 'text-white/60');
+                li.textContent = 'Nenhum jogador inscrito ainda.';
+                playersList.appendChild(li);
+                return;
+            }
+            state.players.forEach((p, idx) => {
+                const item = el('li', 'flex items-center justify-between bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3');
+                const left = el('div');
+                left.appendChild(el('div', 'font-semibold', p.name));
+                if (p.contact) {
+                    const c = el('div', 'text-white/60 text-sm', p.contact);
+                    left.appendChild(c);
+                }
+                const right = el('div', 'flex items-center gap-2');
+                const up = el('button', 'px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sm', '↑');
+                const down = el('button', 'px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sm', '↓');
+                const del = el('button', 'px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sm', 'Remover');
+                up.onclick = () => { if (idx > 0) { [state.players[idx - 1], state.players[idx]] = [state.players[idx], state.players[idx - 1]]; save(); renderPlayers(); } };
+                down.onclick = () => { if (idx < state.players.length - 1) { [state.players[idx + 1], state.players[idx]] = [state.players[idx], state.players[idx + 1]]; save(); renderPlayers(); } };
+                del.onclick = () => { state.players.splice(idx, 1); save(); renderPlayers(); };
+                if (state.readOnly) { up.disabled = down.disabled = del.disabled = true; up.classList.add('opacity-40'); down.classList.add('opacity-40'); del.classList.add('opacity-40'); }
+                right.append(up, down, del);
+                item.append(left, right);
+                playersList.appendChild(item);
+            });
+        }
+
+        addPlayerBtn.addEventListener('click', () => {
+            const name = playerName.value.trim();
+            const contact = playerContact.value.trim();
+            if (!name) return alert('Digite o nome do jogador.');
+            state.players.push({ name, contact, id: uid() });
+            playerName.value = ''; playerContact.value = '';
+            save(); renderPlayers();
+        });
+
+        [playerName, playerContact].forEach(inp => {
+            inp.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') addPlayerBtn.click();
+            });
+        });
+
+        clearAllBtn.addEventListener('click', () => {
+            if (!confirm('Tem certeza que deseja apagar todos os jogadores e a chave?')) return;
+            state.players = []; state.bracket = null; save(); renderPlayers(); renderBracket();
+        });
+
+        exportBtn.addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'fifa25-campeonato.json';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        });
+
+        importFile.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const fr = new FileReader();
+            fr.onload = () => {
+                try {
+                    const data = JSON.parse(fr.result);
+                    if (Array.isArray(data.players)) state.players = data.players; else throw new Error('Arquivo inválido');
+                    state.bracket = data.bracket || null;
+                    state.readOnly = !!data.readOnly;
+                    save(); renderPlayers(); renderBracket();
+                } catch (err) { alert('Falha ao importar: ' + err.message); }
+            };
+            fr.readAsText(file);
+            e.target.value = '';
+        });
+
+        toggleReadOnlyBtn.addEventListener('click', () => {
+            state.readOnly = !state.readOnly; save();
+            toggleReadOnlyBtn.textContent = state.readOnly ? 'Modo edição' : 'Modo leitura';
+            renderPlayers(); renderBracket();
+        });
+
+        // ----------------------
+        // Bracket logic
+        // ----------------------
+        const roundsRoot = document.getElementById('rounds');
+
+        function generateBracket() {
+            if (state.players.length < 2) return alert('Adicione pelo menos 2 jogadores.');
+            const shuffled = shuffle(state.players);
+            const seeded = byesHandledPlayers(shuffled);
+            const firstRound = chunk(seeded, 2).map(pair => ({
+                p1: pair[0] || null,
+                p2: pair[1] || null,
+                p1Score: 0,       // inicializa placar do p1
+                p2Score: 0,       // inicializa placar do p2
+                winner: (pair[0]?.name === 'BYE') ? pair[1] : (pair[1]?.name === 'BYE') ? pair[0] : null
+            }));
+            const rounds = [firstRound];
+
+            let prev = firstRound;
+            while (prev.length > 1) {
+                const winners = prev.map(m => m.winner || null);
+                const next = [];
+                for (let i = 0; i < prev.length; i += 2) {
+                    const a = winners[i] || null;
+                    const b = winners[i + 1] || null;
+                    let auto = null;
+                    if (a && a.name === 'BYE') auto = b;
+                    else if (b && b.name === 'BYE') auto = a;
+
+                    // Aqui também inicializa placares nas rodadas seguintes como 0
+                    next.push({
+                        p1: a,
+                        p2: b,
+                        p1Score: 0,
+                        p2Score: 0,
+                        winner: auto
+                    });
+                }
+                rounds.push(next);
+                prev = next;
+            }
+
+            state.bracket = { rounds };
+            save();
+        }
+
+
+        function setWinner(roundIdx, matchIdx, side) {
+            if (state.readOnly) return;
+            const match = state.bracket.rounds[roundIdx][matchIdx];
+            const winner = side === 'p1' ? match.p1 : match.p2;
+            if (!winner) return;
+            match.winner = winner;
+
+            // Propaga para próxima rodada
+            const nextRound = state.bracket.rounds[roundIdx + 1];
+            if (nextRound) {
+                const target = nextRound[Math.floor(matchIdx / 2)];
+                if (matchIdx % 2 === 0) target.p1 = winner; else target.p2 = winner;
+                // Auto vencedor se houver BYE
+                if (target.p1 && target.p1.name === 'BYE') target.winner = target.p2;
+                if (target.p2 && target.p2.name === 'BYE') target.winner = target.p1;
+            }
+
+            save();
+            renderBracket();
+        }
+
+        function resetBracket() { state.bracket = null; save(); renderBracket(); }
+
+        function renderBracket() {
+            roundsRoot.innerHTML = '';
+            if (!state.bracket) {
+                const placeholder = el('div', 'text-white/60');
+                placeholder.textContent = 'Nenhuma chave gerada ainda. Clique em “SORTEAR & GERAR CHAVE”.';
+                roundsRoot.appendChild(placeholder);
+                return;
+            }
+
+            state.bracket.rounds.forEach((round, rIdx) => {
+                const col = el('div', 'min-w-[260px]');
+                const title = el('div', 'text-center mb-3 text-sm uppercase tracking-wide text-white/60');
+                title.textContent = rIdx === state.bracket.rounds.length - 1 ? 'Final' : `Rodada ${rIdx + 1}`;
+                col.appendChild(title);
+
+                round.forEach((m, mIdx) => {
+                    const card = el('div', 'relative bg-white/[0.04] border border-white/10 rounded-2xl p-3 mb-4');
+
+                    const slot = (player, side) => {
+                        const btn = el('button', 'w-full text-left px-3 py-2 rounded-xl hover:bg-white/10 transition flex items-center justify-between');
+                        btn.disabled = state.readOnly || player?.name === 'BYE' || !player;
+                        if (btn.disabled) btn.classList.add('opacity-60');
+                        btn.onclick = () => setWinner(rIdx, mIdx, side);
+
+                        // Nome do jogador
+                        const name = el('span', 'font-medium flex items-center');
+                        if (player?.name === 'BYE') name.classList.add('italic', 'text-white/60');
+                        name.textContent = player ? player.name : '—';
+
+                        // Input placar
+                        const scoreInput = document.createElement('input');
+                        scoreInput.type = 'number';
+                        scoreInput.min = 0;
+                        scoreInput.value = (side === 'p1' ? m.p1Score : m.p2Score) ?? 0;
+                        scoreInput.className = 'w-12 text-black rounded px-1 ml-3';
+                        scoreInput.disabled = state.readOnly || player?.name === 'BYE' || !player;
+
+                        // Previne clique no input de ativar o botão
+                        scoreInput.addEventListener('click', e => e.stopPropagation());
+                        scoreInput.addEventListener('mousedown', e => e.stopPropagation());
+
+                        scoreInput.addEventListener('change', (e) => {
+                            if (state.readOnly) return;
+                            const val = parseInt(e.target.value);
+                            if (isNaN(val) || val < 0) {
+                                e.target.value = (side === 'p1' ? m.p1Score : m.p2Score) ?? 0;
+                                return;
+                            }
+                            if (side === 'p1') {
+                                state.bracket.rounds[rIdx][mIdx].p1Score = val;
+                            } else {
+                                state.bracket.rounds[rIdx][mIdx].p2Score = val;
+                            }
+                            save();
+                        });
+
+                        // Marcador do vencedor
+                        const mark = el('span', 'text-xs px-2 py-1 rounded-lg border border-white/10');
+                        if (m.winner && player && m.winner.id === player.id) {
+                            mark.textContent = 'Vencedor';
+                            mark.classList.add('bg-lime', 'text-black', 'font-semibold');
+                        } else {
+                            mark.textContent = 'Definir';
+                            mark.classList.add('text-white/60');
+                        }
+
+                        // Montar botão com nome, input e marcação vencedor
+                        const container = document.createElement('div');
+                        container.className = 'flex items-center justify-between w-full';
+
+                        const leftSide = document.createElement('div');
+                        leftSide.className = 'flex items-center';
+                        leftSide.appendChild(name);
+                        leftSide.appendChild(scoreInput);
+
+                        container.appendChild(leftSide);
+                        container.appendChild(mark);
+
+                        btn.innerHTML = ''; // limpa o botão
+                        btn.appendChild(container);
+
+                        return btn;
+                    };
+
+
+
+                    card.appendChild(slot(m.p1, 'p1'));
+                    card.appendChild(slot(m.p2, 'p2'));
+
+                    col.appendChild(card);
+                });
+
+                roundsRoot.appendChild(col);
+            });
+        }
+
+        // Conectores visuais (opcional: simples)
+        // Para manter performance e simplicidade no single-file, não desenhamos SVG dinâmico.
+        // As colunas já deixam a progressão clara; futuramente dá para evoluir com SVG.
+
+        // ----------------------
+        // Eventos botões gerais
+        // ----------------------
+        shuffleBtn.addEventListener('click', () => { generateBracket(); renderBracket(); });
+        resetBracketBtn.addEventListener('click', resetBracket);
+
+        // Boot
+        load();
+        renderPlayers();
+        renderBracket();
+        toggleReadOnlyBtn.textContent = state.readOnly ? 'Modo edição' : 'Modo leitura';
+
+        document.getElementById('closeBanner').addEventListener('click', () => {
+            const banner = document.getElementById('infoBanner');
+            banner.style.display = 'none';
+        });
+
+    </script>
+
+
+</body>
+
+</html>
