@@ -1,7 +1,3 @@
-Aqui está uma versão atualizada do seu arquivo `README.md`, refletindo a integração com o Firebase Realtime Database e o modal de vitória, mantendo um tom descontraído e pessoal.
-
----
-
 # Campeonato FIFA 25 – After dos 31 anos do Will
 
 Este projeto é uma aplicação web feita sob medida para organizar nosso campeonato de FIFA 25, celebrando meus 31 anos. A chave do torneio é atualizada em **tempo real** para que todos possam acompanhar o andamento dos jogos!
