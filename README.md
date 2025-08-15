@@ -1,4 +1,4 @@
-# Campeonato FIFA 25 – After dos 31 anos do Will
+# Campeonato FIFA 25 – 31 anos do Will
 
 Este projeto é uma aplicação web feita sob medida para organizar nosso campeonato de FIFA 25, celebrando meus 31 anos. A chave do torneio é atualizada em **tempo real** para que todos possam acompanhar o andamento dos jogos!
 
