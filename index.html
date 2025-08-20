@@ -2,365 +2,373 @@
 <html lang="pt-BR">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Campeonato FIFA 25 - Will 31</title>
-    <meta name="description" content="Inscrições e chaveamento eliminatório simples para campeonato de FIFA 25." />
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Campeonato FIFA 25 - Will 31</title>
+  <meta name="description" content="Inscrições e chaveamento eliminatório simples para campeonato de FIFA 25." />
+  <script src="https://cdn.tailwindcss.com"></script>
 
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getDatabase, ref, push, onValue, set } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, push, onValue, set } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-        // Tailwind Config – tema gamer neon
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        night: '#0b0f1a',
-                        ink: '#0f172a',
-                        neon: '#22d3ee',
-                        lime: '#a3e635',
-                        magenta: '#f472b6'
-                    },
-                    boxShadow: {
-                        neon: '0 0 0 2px rgba(34, 211, 238, 0.5), 0 10px 25px rgba(0,0,0,.35)'
-                    }
-                }
-            }
-        };
-
-        // Firebase config
-        const firebaseConfig = {
-            apiKey: "AIzaSyCRanY62VSwAN5QBHDO-JnIUQebM6lAIQA",
-            authDomain: "fifa25-after-will.firebaseapp.com",
-            databaseURL: "https://fifa25-after-will-default-rtdb.firebaseio.com",
-            projectId: "fifa25-after-will",
-            storageBucket: "fifa25-after-will.firebasestorage.app",
-            messagingSenderId: "94127244435",
-            appId: "1:94127244435:web:6363377352304c8910f966",
-            measurementId: "G-9ZXYJJMJVT"
-        };
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const playersRef = ref(db, 'players');
-        const bracketRef = ref(db, 'bracket');
-        const readOnlyRef = ref(db, 'readOnly');
-
-        // ----------------------
-        // Estado local (apenas para UI)
-        // ----------------------
-        const state = {
-            players: [], // [{id, name, contact}]
-            bracket: null,
-            readOnly: false
-        };
-
-        // ----------------------
-        // Helpers
-        // ----------------------
-        function shuffle(arr) {
-            const a = arr.slice();
-            for (let i = a.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [a[i], a[j]] = [a[j], a[i]];
-            }
-            return a;
+    // Tailwind Config – tema gamer neon
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            night: '#0b0f1a',
+            ink: '#0f172a',
+            neon: '#22d3ee',
+            lime: '#a3e635',
+            magenta: '#f472b6'
+          },
+          boxShadow: {
+            neon: '0 0 0 2px rgba(34, 211, 238, 0.5), 0 10px 25px rgba(0,0,0,.35)'
+          }
         }
+      }
+    };
 
-        function byesHandledPlayers(players) {
-            const list = players.slice();
-            if (list.length % 2 === 1) list.push({ name: 'BYE', contact: '', id: 'bye' });
-            return list;
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCRanY62VSwAN5QBHDO-JnIUQebM6lAIQA",
+      authDomain: "fifa25-after-will.firebaseapp.com",
+      databaseURL: "https://fifa25-after-will-default-rtdb.firebaseio.com",
+      projectId: "fifa25-after-will",
+      storageBucket: "fifa25-after-will.firebasestorage.app",
+      messagingSenderId: "94127244435",
+      appId: "1:94127244435:web:6363377352304c8910f966",
+      measurementId: "G-9ZXYJJMJVT"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const playersRef = ref(db, 'players');
+    const bracketRef = ref(db, 'bracket');
+    const readOnlyRef = ref(db, 'readOnly');
+
+    // ----------------------
+    // Times disponíveis
+    // ----------------------
+    const teams = [
+      "Barcelona", "Real Madrid", "PSG", "Manchester City", "Liverpool",
+      "Bayern de Munique", "Chelsea", "Juventus", "Milan", "Arsenal",
+      "Inter de Milão", "Borussia Dortmund", "Atlético de Madrid", "Tottenham", "Napoli", "Manchester United", "Bayer Leverkusen", "Newcastle United"
+    ];
+
+    // ----------------------
+    // Estado local
+    // ----------------------
+    const state = {
+      players: [], // [{id, name, contact, team}]
+      bracket: null,
+      readOnly: false
+    };
+
+    // ----------------------
+    // Helpers
+    // ----------------------
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function byesHandledPlayers(players) {
+      const list = players.slice();
+      if (list.length % 2 === 1) list.push({ name: 'BYE', contact: '', id: 'bye' });
+      return list;
+    }
+
+    function chunk(arr, size) {
+      const out = [];
+      for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+      return out;
+    }
+
+    function el(tag, cls, text) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text != null) e.textContent = text;
+      return e;
+    }
+
+    // Função para atribuir times
+    function assignTeams(players) {
+      const shuffledTeams = shuffle(teams);
+      return players.map((p, i) => ({
+        ...p,
+        team: shuffledTeams[i % shuffledTeams.length]
+      }));
+    }
+
+    // ----------------------
+    // Render UI
+    // ----------------------
+    const playersList = document.getElementById('playersList');
+    const roundsRoot = document.getElementById('rounds');
+    const toggleReadOnlyBtn = document.getElementById('toggleReadOnly');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const resetBracketBtn = document.getElementById('resetBracket');
+
+    function renderPlayers() {
+      playersList.innerHTML = '';
+      if (state.players.length === 0) {
+        playersList.appendChild(el('li', 'text-white/60', 'Nenhum jogador inscrito ainda.'));
+        return;
+      }
+      state.players.forEach(p => {
+        const item = el('li', 'flex items-center justify-between bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3');
+        const left = el('div');
+        const nameWithTeam = p.team ? `${p.name} ⚽ (${p.team})` : p.name;
+        left.appendChild(el('div', 'font-semibold', nameWithTeam));
+        if (p.contact) {
+          left.appendChild(el('div', 'text-white/60 text-sm', p.contact));
         }
+        item.appendChild(left);
+        playersList.appendChild(item);
+      });
+    }
 
-        function chunk(arr, size) {
-            const out = [];
-            for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-            return out;
-        }
+    function renderBracket() {
+      roundsRoot.innerHTML = '';
+      if (!state.bracket) {
+        const placeholder = el('div', 'text-white/60');
+        placeholder.textContent = 'Nenhuma chave gerada ainda. Clique em “SORTEAR & GERAR CHAVE”.';
+        roundsRoot.appendChild(placeholder);
+        return;
+      }
 
-        function el(tag, cls, text) {
-            const e = document.createElement(tag);
-            if (cls) e.className = cls;
-            if (text != null) e.textContent = text;
-            return e;
-        }
+      state.bracket.rounds.forEach((round, rIdx) => {
+        const col = el('div', 'min-w-[260px]');
+        const title = el('div', 'text-center mb-3 text-sm uppercase tracking-wide text-white/60');
+        title.textContent = rIdx === state.bracket.rounds.length - 1 ? 'Final' : `Rodada ${rIdx + 1}`;
+        col.appendChild(title);
 
-        // ----------------------
-        // Render UI
-        // ----------------------
-        const playersList = document.getElementById('playersList');
-        const roundsRoot = document.getElementById('rounds');
-        const toggleReadOnlyBtn = document.getElementById('toggleReadOnly');
-        const shuffleBtn = document.getElementById('shuffleBtn');
-        const resetBracketBtn = document.getElementById('resetBracket');
+        round.forEach((m, mIdx) => {
+          const card = el('div', 'relative bg-white/[0.04] border border-white/10 rounded-2xl p-3 mb-4');
+          const slot = (player, side) => {
+            const btn = el('button', 'w-full text-left px-3 py-2 rounded-xl hover:bg-white/10 transition flex items-center justify-between');
+            const isBye = player?.name === 'BYE';
+            btn.disabled = state.readOnly || isBye || !player;
+            if (btn.disabled) btn.classList.add('opacity-60');
 
-        function renderPlayers() {
-            playersList.innerHTML = '';
-            if (state.players.length === 0) {
-                playersList.appendChild(el('li', 'text-white/60', 'Nenhum jogador inscrito ainda.'));
-                return;
-            }
-            state.players.forEach(p => {
-                const item = el('li', 'flex items-center justify-between bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3');
-                const left = el('div');
-                left.appendChild(el('div', 'font-semibold', p.name));
-                if (p.contact) {
-                    left.appendChild(el('div', 'text-white/60 text-sm', p.contact));
-                }
-                item.appendChild(left);
-                playersList.appendChild(item);
+            const name = el('span', 'font-medium flex items-center');
+            if (isBye) name.classList.add('italic', 'text-white/60');
+            name.textContent = player ? `${player.name} (${player.team || 'Sem time'})` : '—';
+
+            const scoreInput = document.createElement('input');
+            scoreInput.type = 'number';
+            scoreInput.min = 0;
+            scoreInput.value = (side === 'p1' ? m.p1Score : m.p2Score) ?? 0;
+            scoreInput.className = 'w-12 text-black rounded px-1 ml-3';
+            scoreInput.disabled = state.readOnly || isBye || !player;
+            scoreInput.addEventListener('click', e => e.stopPropagation());
+            scoreInput.addEventListener('mousedown', e => e.stopPropagation());
+            scoreInput.addEventListener('change', (e) => {
+              if (state.readOnly) return;
+              const val = parseInt(e.target.value) || 0;
+              const path = `rounds/${rIdx}/${mIdx}/${side === 'p1' ? 'p1Score' : 'p2Score'}`;
+              set(ref(db, `bracket/${path}`), val);
             });
-        }
 
-        function renderBracket() {
-            roundsRoot.innerHTML = '';
-            if (!state.bracket) {
-                const placeholder = el('div', 'text-white/60');
-                placeholder.textContent = 'Nenhuma chave gerada ainda. Clique em “SORTEAR & GERAR CHAVE”.';
-                roundsRoot.appendChild(placeholder);
-                return;
-            }
-
-            state.bracket.rounds.forEach((round, rIdx) => {
-                const col = el('div', 'min-w-[260px]');
-                const title = el('div', 'text-center mb-3 text-sm uppercase tracking-wide text-white/60');
-                title.textContent = rIdx === state.bracket.rounds.length - 1 ? 'Final' : `Rodada ${rIdx + 1}`;
-                col.appendChild(title);
-
-                round.forEach((m, mIdx) => {
-                    const card = el('div', 'relative bg-white/[0.04] border border-white/10 rounded-2xl p-3 mb-4');
-                    const slot = (player, side) => {
-                        const btn = el('button', 'w-full text-left px-3 py-2 rounded-xl hover:bg-white/10 transition flex items-center justify-between');
-                        const isBye = player?.name === 'BYE';
-                        btn.disabled = state.readOnly || isBye || !player;
-                        if (btn.disabled) btn.classList.add('opacity-60');
-
-                        const name = el('span', 'font-medium flex items-center');
-                        if (isBye) name.classList.add('italic', 'text-white/60');
-                        name.textContent = player ? player.name : '—';
-
-                        const scoreInput = document.createElement('input');
-                        scoreInput.type = 'number';
-                        scoreInput.min = 0;
-                        scoreInput.value = (side === 'p1' ? m.p1Score : m.p2Score) ?? 0;
-                        scoreInput.className = 'w-12 text-black rounded px-1 ml-3';
-                        scoreInput.disabled = state.readOnly || isBye || !player;
-                        scoreInput.addEventListener('click', e => e.stopPropagation());
-                        scoreInput.addEventListener('mousedown', e => e.stopPropagation());
-                        scoreInput.addEventListener('change', (e) => {
-                            if (state.readOnly) return;
-                            const val = parseInt(e.target.value) || 0;
-                            const path = `rounds/${rIdx}/${mIdx}/${side === 'p1' ? 'p1Score' : 'p2Score'}`;
-                            set(ref(db, `bracket/${path}`), val);
-                        });
-
-                        const mark = el('span', 'text-xs px-2 py-1 rounded-lg border border-white/10');
-                        if (m.winner && player && m.winner.id === player.id) {
-                            mark.textContent = 'Vencedor';
-                            mark.classList.add('bg-lime', 'text-black', 'font-semibold');
-                        } else {
-                            mark.textContent = 'Definir';
-                            mark.classList.add('text-white/60');
-                        }
-
-                        btn.addEventListener('click', () => {
-                            setWinner(rIdx, mIdx, side);
-                        });
-
-                        const container = el('div', 'flex items-center justify-between w-full');
-                        const leftSide = el('div', 'flex items-center');
-                        leftSide.append(name, scoreInput);
-                        container.append(leftSide, mark);
-                        btn.appendChild(container);
-                        return btn;
-                    };
-                    card.append(slot(m.p1, 'p1'), slot(m.p2, 'p2'));
-                    col.appendChild(card);
-                });
-                roundsRoot.appendChild(col);
-            });
-        }
-
-        function updateReadOnlyUI() {
-            toggleReadOnlyBtn.textContent = state.readOnly ? 'Modo edição' : 'Modo leitura';
-            const readOnlyClass = 'opacity-50 cursor-not-allowed';
-            if (state.readOnly) {
-                shuffleBtn.classList.add(readOnlyClass);
-                resetBracketBtn.classList.add(readOnlyClass);
+            const mark = el('span', 'text-xs px-2 py-1 rounded-lg border border-white/10');
+            if (m.winner && player && m.winner.id === player.id) {
+              mark.textContent = 'Vencedor';
+              mark.classList.add('bg-lime', 'text-black', 'font-semibold');
             } else {
-                shuffleBtn.classList.remove(readOnlyClass);
-                resetBracketBtn.classList.remove(readOnlyClass);
-            }
-            shuffleBtn.disabled = state.readOnly;
-            resetBracketBtn.disabled = state.readOnly;
-        }
-
-        // ----------------------
-        // Lógica da Chave (integração com Firebase)
-        // ----------------------
-        function generateBracket() {
-            if (state.readOnly) return;
-            if (state.players.length < 2) return alert('Adicione pelo menos 2 jogadores.');
-
-            const shuffled = shuffle(state.players);
-            const seeded = byesHandledPlayers(shuffled);
-            const firstRound = chunk(seeded, 2).map(pair => ({
-                p1: pair[0] || null,
-                p2: pair[1] || null,
-                p1Score: 0,
-                p2Score: 0,
-                winner: (pair[0]?.name === 'BYE') ? pair[1] : (pair[1]?.name === 'BYE') ? pair[0] : null
-            }));
-            const rounds = [firstRound];
-
-            let prev = firstRound;
-            while (prev.length > 1) {
-                const winners = prev.map(m => m.winner || null);
-                const next = [];
-                for (let i = 0; i < prev.length; i += 2) {
-                    const a = winners[i] || null;
-                    const b = winners[i + 1] || null;
-                    let auto = null;
-                    if (a && a.name === 'BYE') auto = b;
-                    else if (b && b.name === 'BYE') auto = a;
-                    next.push({
-                        p1: a, p2: b, p1Score: 0, p2Score: 0, winner: auto
-                    });
-                }
-                rounds.push(next);
-                prev = next;
+              mark.textContent = 'Definir';
+              mark.classList.add('text-white/60');
             }
 
-            set(bracketRef, { rounds: rounds });
+            btn.addEventListener('click', () => {
+              setWinner(rIdx, mIdx, side);
+            });
+
+            const container = el('div', 'flex items-center justify-between w-full');
+            const leftSide = el('div', 'flex items-center');
+            leftSide.append(name, scoreInput);
+            container.append(leftSide, mark);
+            btn.appendChild(container);
+            return btn;
+          };
+          card.append(slot(m.p1, 'p1'), slot(m.p2, 'p2'));
+          col.appendChild(card);
+        });
+        roundsRoot.appendChild(col);
+      });
+    }
+
+    function updateReadOnlyUI() {
+      toggleReadOnlyBtn.textContent = state.readOnly ? 'Modo edição' : 'Modo leitura';
+      const readOnlyClass = 'opacity-50 cursor-not-allowed';
+      if (state.readOnly) {
+        shuffleBtn.classList.add(readOnlyClass);
+        resetBracketBtn.classList.add(readOnlyClass);
+      } else {
+        shuffleBtn.classList.remove(readOnlyClass);
+        resetBracketBtn.classList.remove(readOnlyClass);
+      }
+      shuffleBtn.disabled = state.readOnly;
+      resetBracketBtn.disabled = state.readOnly;
+    }
+
+    // ----------------------
+    // Lógica da Chave
+    // ----------------------
+    function generateBracket() {
+      if (state.readOnly) return;
+      if (state.players.length < 2) return alert('Adicione pelo menos 2 jogadores.');
+
+      // Sorteia jogadores + times
+      const withTeams = assignTeams(shuffle(state.players));
+      const seeded = byesHandledPlayers(withTeams);
+
+      const firstRound = chunk(seeded, 2).map(pair => ({
+        p1: pair[0] || null,
+        p2: pair[1] || null,
+        p1Score: 0,
+        p2Score: 0,
+        winner: (pair[0]?.name === 'BYE') ? pair[1] : (pair[1]?.name === 'BYE') ? pair[0] : null
+      }));
+      const rounds = [firstRound];
+
+      let prev = firstRound;
+      while (prev.length > 1) {
+        const winners = prev.map(m => m.winner || null);
+        const next = [];
+        for (let i = 0; i < prev.length; i += 2) {
+          const a = winners[i] || null;
+          const b = winners[i + 1] || null;
+          let auto = null;
+          if (a && a.name === 'BYE') auto = b;
+          else if (b && b.name === 'BYE') auto = a;
+          next.push({
+            p1: a, p2: b, p1Score: 0, p2Score: 0, winner: auto
+          });
         }
+        rounds.push(next);
+        prev = next;
+      }
 
-        function setWinner(roundIdx, matchIdx, side) {
-            if (state.readOnly) return;
-            const match = state.bracket.rounds[roundIdx][matchIdx];
-            const winner = side === 'p1' ? match.p1 : match.p2;
-            if (!winner) return;
-            // Novo trecho corrigido
-            // Checa se esta é a última rodada
-            if (roundIdx === state.bracket.rounds.length - 1) {
-                const winner = side === 'p1' ? match.p1 : match.p2;
+      set(bracketRef, { rounds: rounds });
+      // Atualiza jogadores no firebase com os times sorteados
+      set(playersRef, null);
+      withTeams.forEach(p => {
+        push(playersRef, p);
+      });
+    }
 
-                // Exibe o modal com a animação
-                const modal = document.getElementById('winner-modal');
-                const winnerName = document.getElementById('winner-name');
-                winnerName.textContent = winner.name;
-                modal.classList.remove('hidden');
+    function setWinner(roundIdx, matchIdx, side) {
+      if (state.readOnly) return;
+      const match = state.bracket.rounds[roundIdx][matchIdx];
+      const winner = side === 'p1' ? match.p1 : match.p2;
+      if (!winner) return;
 
-                document.getElementById('close-modal-btn').onclick = () => {
-                    modal.classList.add('hidden');
-                };
+      // Checa se é a final
+      if (roundIdx === state.bracket.rounds.length - 1) {
+        const modal = document.getElementById('winner-modal');
+        const winnerName = document.getElementById('winner-name');
+        winnerName.textContent = `${winner.name} (${winner.team || 'Sem time'})`;
+        modal.classList.remove('hidden');
+        document.getElementById('close-modal-btn').onclick = () => {
+          modal.classList.add('hidden');
+        };
+      }
+
+      set(ref(db, `bracket/rounds/${roundIdx}/${matchIdx}/winner`), winner)
+        .then(() => {
+          const nextRound = state.bracket.rounds[roundIdx + 1];
+          if (nextRound) {
+            const targetMatchIdx = Math.floor(matchIdx / 2);
+            const playerSide = matchIdx % 2 === 0 ? 'p1' : 'p2';
+            const updatePath = `bracket/rounds/${roundIdx + 1}/${targetMatchIdx}/${playerSide}`;
+            set(ref(db, updatePath), winner);
+
+            const nextMatch = nextRound[targetMatchIdx];
+            if ((nextMatch.p1 && nextMatch.p1.name === 'BYE') || (nextMatch.p2 && nextMatch.p2.name === 'BYE')) {
+              set(ref(db, `bracket/rounds/${roundIdx + 1}/${targetMatchIdx}/winner`), nextMatch.p1.name === 'BYE' ? nextMatch.p2 : nextMatch.p1);
             }
-
-            // Define o vencedor no Firebase
-            set(ref(db, `bracket/rounds/${roundIdx}/${matchIdx}/winner`), winner)
-                .then(() => {
-                    // Propaga para a próxima rodada no Firebase
-                    const nextRound = state.bracket.rounds[roundIdx + 1];
-                    if (nextRound) {
-                        const targetMatchIdx = Math.floor(matchIdx / 2);
-                        const playerSide = matchIdx % 2 === 0 ? 'p1' : 'p2';
-                        const updatePath = `bracket/rounds/${roundIdx + 1}/${targetMatchIdx}/${playerSide}`;
-                        set(ref(db, updatePath), winner);
-
-                        // Checa se já tem um adversário, se sim, pode haver um BYE automático
-                        const nextMatch = nextRound[targetMatchIdx];
-                        if ((nextMatch.p1 && nextMatch.p1.name === 'BYE') || (nextMatch.p2 && nextMatch.p2.name === 'BYE')) {
-                            set(ref(db, `bracket/rounds/${roundIdx + 1}/${targetMatchIdx}/winner`), nextMatch.p1.name === 'BYE' ? nextMatch.p2 : nextMatch.p1);
-                        }
-                    }
-                });
-        }
-
-        function resetBracket() {
-            if (state.readOnly) return;
-            if (!confirm('Tem certeza que deseja apagar a chave?')) return;
-            set(bracketRef, null);
-        }
-
-        // ----------------------
-        // Event listeners
-        // ----------------------
-        document.getElementById('addPlayer').addEventListener('click', () => {
-            const playerName = document.getElementById('playerName');
-            const playerContact = document.getElementById('playerContact');
-            const name = playerName.value.trim();
-            const contact = playerContact.value.trim();
-            if (!name) return alert('Digite o nome do jogador.');
-            push(playersRef, { name, contact });
-            playerName.value = '';
-            playerContact.value = '';
+          }
         });
+    }
 
-        document.getElementById('clearAll').addEventListener('click', () => {
-            if (state.readOnly) return;
-            if (!confirm('Tem certeza que deseja apagar todos os jogadores e a chave?')) return;
-            set(playersRef, null);
-            set(bracketRef, null);
-        });
+    function resetBracket() {
+      if (state.readOnly) return;
+      if (!confirm('Tem certeza que deseja apagar a chave?')) return;
+      set(bracketRef, null);
+    }
 
-        shuffleBtn.addEventListener('click', generateBracket);
-        resetBracketBtn.addEventListener('click', resetBracket);
-        toggleReadOnlyBtn.addEventListener('click', () => set(readOnlyRef, !state.readOnly));
+    // ----------------------
+    // Event listeners
+    // ----------------------
+    document.getElementById('addPlayer').addEventListener('click', () => {
+      const playerName = document.getElementById('playerName');
+      const playerContact = document.getElementById('playerContact');
+      const name = playerName.value.trim();
+      const contact = playerContact.value.trim();
+      if (!name) return alert('Digite o nome do jogador.');
+      push(playersRef, { name, contact });
+      playerName.value = '';
+      playerContact.value = '';
+    });
 
-        document.getElementById('closeBanner').addEventListener('click', () => {
-            document.getElementById('infoBanner').style.display = 'none';
-        });
+    document.getElementById('clearAll').addEventListener('click', () => {
+      if (state.readOnly) return;
+      if (!confirm('Tem certeza que deseja apagar todos os jogadores e a chave?')) return;
+      set(playersRef, null);
+      set(bracketRef, null);
+    });
 
-        // ----------------------
-        // Sincronização em tempo real (onValue)
-        // ----------------------
-        onValue(playersRef, (snapshot) => {
-            const data = snapshot.val();
-            state.players = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
-            renderPlayers();
-        });
+    shuffleBtn.addEventListener('click', generateBracket);
+    resetBracketBtn.addEventListener('click', resetBracket);
+    toggleReadOnlyBtn.addEventListener('click', () => set(readOnlyRef, !state.readOnly));
 
-        onValue(bracketRef, (snapshot) => {
-            const data = snapshot.val();
-            state.bracket = data;
-            renderBracket();
-        });
+    document.getElementById('closeBanner').addEventListener('click', () => {
+      document.getElementById('infoBanner').style.display = 'none';
+    });
 
-        onValue(readOnlyRef, (snapshot) => {
-            const data = snapshot.val();
-            state.readOnly = data === true;
-            updateReadOnlyUI();
-            renderBracket();
-        });
-    </script>
-    <style>
-        /* Estilos CSS do seu código */
-        .connector {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.12);
-        }
+    // ----------------------
+    // Sincronização em tempo real
+    // ----------------------
+    onValue(playersRef, (snapshot) => {
+      const data = snapshot.val();
+      state.players = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+      renderPlayers();
+    });
 
-        .connector.h {
-            height: 2px;
-        }
+    onValue(bracketRef, (snapshot) => {
+      const data = snapshot.val();
+      state.bracket = data;
+      renderBracket();
+    });
 
-        .connector.v {
-            width: 2px;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-    </style>
+    onValue(readOnlyRef, (snapshot) => {
+      const data = snapshot.val();
+      state.readOnly = data === true;
+      updateReadOnlyUI();
+      renderBracket();
+    });
+  </script>
+  <style>
+    .connector {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .connector.h { height: 2px; }
+    .connector.v { width: 2px; }
+    html { scroll-behavior: smooth; }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  </style>
 </head>
 
 <body class="bg-ink min-h-screen text-white">
